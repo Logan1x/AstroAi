@@ -12,7 +12,7 @@ export default function Home() {
           </span>
         </h1>
         <Link
-          className="text-xl bg-gray-800 text-gray-50 px-4 py-2 rounded shadow font-semibold hover:bg-gray-900"
+          className="text-xl bg-gray-800 text-gray-50 px-6 py-2 rounded shadow font-semibold mx-auto hover:bg-gray-900"
           href={"/login"}
         >
           Login
