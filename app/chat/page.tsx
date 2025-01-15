@@ -18,7 +18,7 @@ export default async function ChatPage() {
   }
 
   return (
-    <main className="container mx-auto w-3/5">
+    <main className="container mx-auto md:w-3/5">
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <ChatInterface initialThreadId={null} userId={session.uid} />
       </div>
