@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import ChatInterface from "./chatInterface";
-import { createThread } from "@/lib/openai";
 import { getServerSession } from "@/lib/serverAuth";
 import { checkUserPaymentStatus } from "@/lib/paymentCheck";
 
-export default async function Home() {
+export default async function ChatPage() {
   // Server-side session check
   const session = await getServerSession();
 
@@ -18,12 +17,10 @@ export default async function Home() {
     redirect("/payments");
   }
 
-  const thread = await createThread();
-
   return (
     <main className="container mx-auto max-w-2xl p-4">
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <ChatInterface initialThreadId={thread.id} userId={session.uid} />
+        <ChatInterface initialThreadId={null} userId={session.uid} />
       </div>
     </main>
   );

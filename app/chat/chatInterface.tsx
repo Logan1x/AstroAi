@@ -1,12 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  addMessageToThread,
-  runAssistant,
-  checkRunStatus,
-  getThreadMessages,
-} from "@/lib/openai";
 
 type Message = {
   id: string;
@@ -16,14 +10,33 @@ type Message = {
 
 export default function ChatInterface({
   initialThreadId,
+  userId,
 }: {
-  initialThreadId: string;
+  initialThreadId: string | null;
+  userId: string;
 }) {
-  const [threadId, setThreadId] = useState(initialThreadId);
+  const [threadId, setThreadId] = useState<string | null>(initialThreadId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  // Create thread if not exists
+  useEffect(() => {
+    const createThread = async () => {
+      if (!threadId) {
+        try {
+          const response = await fetch("/api/chat");
+          const data = await response.json();
+          setThreadId(data.threadId);
+        } catch (error) {
+          console.error("Failed to create thread", error);
+        }
+      }
+    };
+
+    createThread();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,7 +47,7 @@ export default function ChatInterface({
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !threadId) return;
 
     const userMessage = {
       id: `user-${Date.now()}`,
@@ -47,34 +60,25 @@ export default function ChatInterface({
     setIsLoading(true);
 
     try {
-      await addMessageToThread(threadId, input);
-      const run = await runAssistant(threadId);
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          threadId,
+          message: input,
+          userId,
+        }),
+      });
 
-      // Poll for run completion
-      const checkStatus = async () => {
-        const status = await checkRunStatus(threadId, run.id);
+      const data = await response.json();
 
-        if (status.status === "completed") {
-          const updatedMessages = await getThreadMessages(threadId);
+      if (data.messages && data.messages.length > 0) {
+        setMessages(data.messages);
+      }
 
-          const formattedMessages = updatedMessages.map((msg) => ({
-            id: msg.id,
-            role: msg.role,
-            content: msg.content.map((c) =>
-              c.type === "text" ? c.text.value : ""
-            ),
-          }));
-
-          setMessages(formattedMessages);
-          setIsLoading(false);
-        } else if (["failed", "cancelled"].includes(status.status)) {
-          setIsLoading(false);
-        } else {
-          setTimeout(checkStatus, 1000);
-        }
-      };
-
-      checkStatus();
+      setIsLoading(false);
     } catch (error) {
       console.error(error);
       setIsLoading(false);
@@ -121,12 +125,12 @@ export default function ChatInterface({
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
             className="flex-grow p-2 border rounded-lg"
             placeholder="Type your message..."
-            disabled={isLoading}
+            disabled={isLoading || !threadId}
           />
           <button
             onClick={handleSendMessage}
-            disabled={isLoading || !input.trim()}
-            className="bg-blue-500 text-white p-2 rounded-lg disabled:opacity-50"
+            disabled={isLoading || !input.trim() || !threadId}
+            className="bg-blue-500 text-white p-2 rounde d-lg"
           >
             Send
           </button>
